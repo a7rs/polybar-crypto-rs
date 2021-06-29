@@ -11,9 +11,9 @@ struct CoinData {
 
 #[tokio::main]
 async fn get_data(config: Config) -> Result<Vec<CoinData>, Box<dyn Error>> {
-
     // Formats array of coins for API request
-    let coin_ids = config.coins
+    let coin_ids = config
+        .coins
         .iter()
         .map(|c| format!("{}%2C", c.name))
         .collect::<String>();
@@ -31,17 +31,15 @@ async fn get_data(config: Config) -> Result<Vec<CoinData>, Box<dyn Error>> {
 
     let mut coin_data: Vec<CoinData> = Vec::with_capacity(config.coins.len());
     for coin in config.coins {
-        coin_data.push(
-            CoinData {
-                price: resp[&coin.name][&config.vs_currency]
-                    .to_string()
-                    .parse::<f64>()?,
-                change: resp[&coin.name][&(format!("{}_24h_change", &config.vs_currency))]
-                    .to_string()
-                    .parse::<f64>()?,
-                coin: coin,
-            }
-        );
+        coin_data.push(CoinData {
+            price: resp[&coin.name][&config.vs_currency]
+                .to_string()
+                .parse::<f64>()?,
+            change: resp[&coin.name][&(format!("{}_24h_change", &config.vs_currency))]
+                .to_string()
+                .parse::<f64>()?,
+            coin,
+        });
     }
 
     Ok(coin_data)
@@ -56,7 +54,7 @@ fn main() {
         Err(_) => {
             println!("Failed to get data");
             return ();
-        },
+        }
     };
 
     for data in coin_data {
@@ -67,7 +65,10 @@ fn main() {
             // Format % change to red if negative
             format!("%{{F#ff004b}}{:.2}%%{{F-}}", data.change)
         };
-        output.push(format!("{}: ${}/{} // ", data.coin.symbol , data.price, change));
+        output.push(format!(
+            "{}: ${}/{} // ",
+            data.coin.symbol, data.price, change
+        ));
     }
     let output = output.into_iter().collect::<String>();
     println!("{}", &output[..output.len() - 4]);
@@ -80,7 +81,7 @@ mod test {
     #[test]
     fn test_get_data() {
         let config = Config::default();
-        let data: Vec<CoinData> = match get_data(config.clone()) {
+        let data: Vec<CoinData> = match get_data(Config::default()) {
             Ok(data) => data,
             Err(_) => panic!(),
         };
