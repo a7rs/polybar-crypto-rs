@@ -3,7 +3,6 @@ use std::error::Error;
 use crate::config::{Coin, Config};
 mod config;
 
-#[derive(Debug)]
 struct CoinData {
     coin: Coin,
     price: f64,
@@ -12,6 +11,8 @@ struct CoinData {
 
 #[tokio::main]
 async fn get_data(config: Config) -> Result<Vec<CoinData>, Box<dyn Error>> {
+
+    // Formats array of coins for API request
     let coin_ids = config.coins
         .iter()
         .map(|c| format!("{}%2C", c.name))
@@ -60,8 +61,10 @@ fn main() {
 
     for data in coin_data {
         let change = if data.change > 0f64 {
+            // Format % change green if positive
             format!("%{{F#21cf5f}}+{:.2}%%{{F-}}", data.change)
         } else {
+            // Format % change to red if negative
             format!("%{{F#ff004b}}{:.2}%%{{F-}}", data.change)
         };
         output.push(format!("{}: ${}/{} // ", data.coin.symbol , data.price, change));

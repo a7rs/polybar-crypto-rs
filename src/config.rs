@@ -4,13 +4,13 @@ use std::io;
 use std::path::PathBuf;
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub(crate) struct Coin {
     pub name: String,
     pub symbol: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub(crate) struct Config {
     pub vs_currency: String,
     pub coins: Vec<Coin>,
@@ -48,11 +48,13 @@ impl Default for Config {
 
 impl Config {
     pub fn load() -> Result<Self, io::Error> {
+        // Get config path and append file path if exists
         let config_path = match Self::get_dir_path() {
             Some(dir) => Some(Self::get_file_path(dir)),
             _ => None,
         };
 
+        // Load config file if path exists else create config file
         match config_path {
             Some(path) => match path.exists() {
                 true => Self::load_config_file(&path),
@@ -81,6 +83,8 @@ impl Config {
         Ok(config)
     }
 
+    // Attempts to create config directory if $XDG_CONFIG_HOME exists
+    // Otherwise just returns $HOME
     fn choose_config_loc() -> Result<PathBuf, io::Error> {
         let dir = match dirs::config_dir() {
             Some(mut dir) => {
@@ -88,13 +92,9 @@ impl Config {
                 fs::create_dir(&dir)?;
                 dir
             },
-            _ => {
-                if let Some(dir) = dirs::home_dir() {
-                    dir
-                } else {
-                    unimplemented!();
-                }
-            },
+            _ => dirs::home_dir()
+                .ok_or("Error resolving home directory")
+                .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{:?}", err)))?,
         };
         Ok(dir)
     }
@@ -118,7 +118,6 @@ impl Config {
             },
             _ => None,
         };
-
         config_dir
     }
 }
