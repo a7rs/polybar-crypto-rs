@@ -1,17 +1,16 @@
-use std::error::Error;
 use std::fs;
 use std::fs::File;
 use std::io;
 use std::path::PathBuf;
 use serde_derive::{Deserialize, Serialize};
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub(crate) struct Coin {
     pub name: String,
     pub symbol: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub(crate) struct Config {
     pub vs_currency: String,
     pub coins: Vec<Coin>,
@@ -54,26 +53,35 @@ impl Config {
             _ => None,
         };
 
-        if config_path.is_none() {
-            if let Ok(path) = Self::choose_config_loc() {
-                match Self::create_config_file(path) {
-                    Ok(_) => (),
-                    Err(_) => println!("Error create config file"),
+        match config_path {
+            Some(path) => match path.exists() {
+                true => Self::load_config_file(&path),
+                false => match Self::create_config_file(&path) {
+                    Ok(_) => Self::load_config_file(&path),
+                    Err(e) => Err(e),
+                }
+            },
+            None => {
+                match Self::choose_config_loc() {
+                    Ok(path) => match Self::create_config_file(
+                    &Self::get_file_path(path.clone())) {
+                        Ok(_) => Self::load_config_file(&path),
+                        Err(e) => Err(e),
+                    },
+                    Err(e) => Err(e),
                 }
             }
         }
-
-        Self::load_config_file(config_path.unwrap())
     }
 
-    fn load_config_file(path: PathBuf) -> Result<Config, io::Error>{
+    fn load_config_file(path: &PathBuf) -> Result<Config, io::Error>{
         let file = File::open(path)?;
         let config: Config = serde_json::from_reader(file)
             .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{:?}", err)))?;
         Ok(config)
     }
 
-    fn choose_config_loc() -> Result<PathBuf, Box<dyn Error>> {
+    fn choose_config_loc() -> Result<PathBuf, io::Error> {
         let dir = match dirs::config_dir() {
             Some(mut dir) => {
                 dir.push("polybar");
@@ -91,8 +99,7 @@ impl Config {
         Ok(dir)
     }
 
-    fn create_config_file(path: PathBuf) -> io::Result<()> {
-        let path = Self::get_file_path(path);
+    fn create_config_file(path: &PathBuf) -> io::Result<()> {
         serde_json::to_writer(&File::create(path)?, &Config::default())?;
         Ok(())
     }

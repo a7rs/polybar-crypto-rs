@@ -3,6 +3,7 @@ use std::error::Error;
 use crate::config::{Coin, Config};
 mod config;
 
+#[derive(Debug)]
 struct CoinData {
     coin: Coin,
     price: f64,
@@ -18,8 +19,8 @@ async fn get_data(config: Config) -> Result<Vec<CoinData>, Box<dyn Error>> {
 
     let url = format!(
         "https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies={}&include_24hr_change=true",
-        config.vs_currency,
         &coin_ids[..coin_ids.len() - 3],
+        config.vs_currency,
     );
 
     let resp = reqwest::get(&url)
@@ -31,13 +32,13 @@ async fn get_data(config: Config) -> Result<Vec<CoinData>, Box<dyn Error>> {
     for coin in config.coins {
         coin_data.push(
             CoinData {
-                coin: coin.clone(),
                 price: resp[&coin.name][&config.vs_currency]
                     .to_string()
                     .parse::<f64>()?,
                 change: resp[&coin.name][&(format!("{}_24h_change", &config.vs_currency))]
                     .to_string()
                     .parse::<f64>()?,
+                coin: coin,
             }
         );
     }
@@ -51,7 +52,10 @@ fn main() {
 
     let coin_data: Vec<CoinData> = match get_data(config) {
         Ok(data) => data,
-        Err(_) => return (),
+        Err(_) => {
+            println!("Failed to get data");
+            return ();
+        },
     };
 
     for data in coin_data {
@@ -64,4 +68,22 @@ fn main() {
     }
     let output = output.into_iter().collect::<String>();
     println!("{}", &output[..output.len() - 4]);
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_get_data() {
+        let config = Config::default();
+        let data: Vec<CoinData> = match get_data(config.clone()) {
+            Ok(data) => data,
+            Err(_) => panic!(),
+        };
+
+        for i in 0..data.len() {
+            assert_eq!(config.coins[i].name, data[i].coin.name);
+        }
+    }
 }
