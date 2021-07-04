@@ -60,10 +60,10 @@ fn main() {
     for data in coin_data {
         let change = if data.change > 0f64 {
             // Format % change green if positive
-            format!("%{{F#21cf5f}}+{:.2}%%{{F-}}", data.change)
+            format!("%{{F#8ec07c}}+{:.2}%%{{F-}}", data.change)
         } else {
             // Format % change to red if negative
-            format!("%{{F#ff004b}}{:.2}%%{{F-}}", data.change)
+            format!("%{{F#fb4934}}{:.2}%%{{F-}}", data.change)
         };
         output.push(format!(
             "{}: ${}/{} // ",
