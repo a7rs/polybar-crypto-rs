@@ -1,8 +1,8 @@
+use serde_derive::{Deserialize, Serialize};
 use std::fs;
 use std::fs::File;
 use std::io;
 use std::path::PathBuf;
-use serde_derive::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
 pub(crate) struct Coin {
@@ -41,6 +41,22 @@ impl Default for Config {
                     name: String::from("binancecoin"),
                     symbol: String::from("BNB"),
                 },
+                Coin {
+                    name: String::from("avalanche"),
+                    symbol: String::from("AVAX"),
+                },
+                Coin {
+                    name: String::from("luna"),
+                    symbol: String::from("LUNA"),
+                },
+                Coin {
+                    name: String::from("fantom"),
+                    symbol: String::from("FTM"),
+                },
+                Coin {
+                    name: String::from("near"),
+                    symbol: String::from("NEAR"),
+                },
             ],
         }
     }
@@ -61,22 +77,19 @@ impl Config {
                 false => match Self::create_config_file(&path) {
                     Ok(_) => Self::load_config_file(&path),
                     Err(e) => Err(e),
-                }
+                },
             },
-            None => {
-                match Self::choose_config_loc() {
-                    Ok(path) => match Self::create_config_file(
-                    &Self::get_file_path(path.clone())) {
-                        Ok(_) => Self::load_config_file(&path),
-                        Err(e) => Err(e),
-                    },
+            None => match Self::choose_config_loc() {
+                Ok(path) => match Self::create_config_file(&Self::get_file_path(path.clone())) {
+                    Ok(_) => Self::load_config_file(&path),
                     Err(e) => Err(e),
-                }
-            }
+                },
+                Err(e) => Err(e),
+            },
         }
     }
 
-    fn load_config_file(path: &PathBuf) -> Result<Config, io::Error>{
+    fn load_config_file(path: &PathBuf) -> Result<Config, io::Error> {
         let file = File::open(path)?;
         let config: Config = serde_json::from_reader(file)
             .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{:?}", err)))?;
@@ -91,7 +104,7 @@ impl Config {
                 dir.push("polybar");
                 fs::create_dir(&dir)?;
                 dir
-            },
+            }
             _ => dirs::home_dir()
                 .ok_or("Error resolving home directory")
                 .map_err(|err| io::Error::new(io::ErrorKind::Other, format!("{:?}", err)))?,
@@ -114,8 +127,12 @@ impl Config {
         let config_dir = match dirs::config_dir() {
             Some(mut dir) => {
                 dir.push("polybar");
-                if dir.exists() { Some(dir) } else { None }
-            },
+                if dir.exists() {
+                    Some(dir)
+                } else {
+                    None
+                }
+            }
             _ => None,
         };
         config_dir
